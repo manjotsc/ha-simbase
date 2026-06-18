@@ -42,6 +42,16 @@ def _bytes_to_mb(value: Any) -> float | None:
         return None
 
 
+def _to_float(value: Any) -> float | None:
+    """Coerce an API value (often a decimal string) to a float."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
 def _get_data_usage(data: dict) -> float | None:
     """Get data usage in MB from Simbase API response."""
     # Simbase returns data in current_month_usage.data (bytes)
@@ -99,13 +109,6 @@ SENSOR_DESCRIPTIONS: tuple[SimbaseSensorEntityDescription, ...] = (
         },
     ),
     SimbaseSensorEntityDescription(
-        key="data_limit",
-        translation_key="data_limit",
-        native_unit_of_measurement=UnitOfInformation.MEGABYTES,
-        device_class=SensorDeviceClass.DATA_SIZE,
-        value_fn=lambda data: None,  # Simbase doesn't provide data limit in API
-    ),
-    SimbaseSensorEntityDescription(
         key="status",
         translation_key="sim_status",
         device_class=SensorDeviceClass.ENUM,
@@ -129,25 +132,37 @@ SENSOR_DESCRIPTIONS: tuple[SimbaseSensorEntityDescription, ...] = (
         key="network",
         translation_key="network",
         icon="mdi:antenna",
-        value_fn=lambda data: data.get("network_operator"),
+        value_fn=lambda data: (data.get("connection") or {}).get("carrier")
+        or data.get("network_operator"),
         attr_fn=lambda data: {
-            "mcc": data.get("mcc"),
-            "mnc": data.get("mnc"),
-            "session": data.get("session", {}).get("id") if data.get("session") else None,
+            "country": (data.get("connection") or {}).get("country"),
+            "mcc": (data.get("connection") or {}).get("mcc"),
+            "mnc": (data.get("connection") or {}).get("mnc"),
+            "last_update": (data.get("connection") or {}).get("last_update"),
         },
     ),
     SimbaseSensorEntityDescription(
-        key="signal_strength",
-        translation_key="signal_strength",
-        native_unit_of_measurement="dBm",
-        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: None,  # Not provided by Simbase API
+        key="session_status",
+        translation_key="session_status",
+        icon="mdi:transit-connection-variant",
+        device_class=SensorDeviceClass.ENUM,
+        options=["in_session", "no_session", "unavailable"],
+        value_fn=lambda data: data.get("session_status"),
     ),
     SimbaseSensorEntityDescription(
-        key="connection_type",
-        translation_key="connection_type",
-        value_fn=lambda data: None,  # Not provided by Simbase API
+        key="location",
+        translation_key="location",
+        icon="mdi:map-marker",
+        value_fn=lambda data: (data.get("location") or {}).get("country"),
+        attr_fn=lambda data: {
+            "carrier": (data.get("location") or {}).get("carrier"),
+            "latitude": (data.get("location") or {}).get("lat"),
+            "longitude": (data.get("location") or {}).get("lon"),
+            "cell_id": (data.get("location") or {}).get("cell_id"),
+            "lac": (data.get("location") or {}).get("lac"),
+            "radio": (data.get("location") or {}).get("radio"),
+            "last_update": (data.get("location") or {}).get("last_update"),
+        },
     ),
     SimbaseSensorEntityDescription(
         key="ip_address",
@@ -243,12 +258,14 @@ ACCOUNT_SENSOR_DESCRIPTIONS: tuple[SimbaseSensorEntityDescription, ...] = (
     SimbaseSensorEntityDescription(
         key="account_balance",
         translation_key="account_balance",
-        native_unit_of_measurement="$",
         device_class=SensorDeviceClass.MONETARY,
-        value_fn=lambda data: data.get("balance"),
+        value_fn=lambda data: _to_float(data.get("balance")),
         attr_fn=lambda data: {
             "currency": data.get("currency", "USD"),
-            "auto_recharge": data.get("auto_recharge"),
+            "auto_top_up_enabled": data.get("auto_top_up_enabled"),
+            "auto_top_up_threshold": data.get("auto_top_up_threshold"),
+            "auto_top_up_amount": data.get("auto_top_up_amount"),
+            "last_update": data.get("last_update"),
         },
     ),
     SimbaseSensorEntityDescription(
@@ -401,6 +418,13 @@ class SimbaseAccountSensor(SimbaseAccountEntity, SensorEntity):
         super().__init__(coordinator, entry_id)
         self.entity_description = description
         self._attr_unique_id = f"account_{entry_id}_{description.key}"
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit, using the live currency for the balance sensor."""
+        if self.entity_description.key == "account_balance":
+            return self._get_balance_data().get("currency") or "USD"
+        return self.entity_description.native_unit_of_measurement
 
     @property
     def native_value(self) -> Any:

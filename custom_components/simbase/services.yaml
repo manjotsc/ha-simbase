@@ -63,3 +63,92 @@ read_sms:
           min: 1
           max: 100
           mode: slider
+
+reset_connection:
+  name: Reset connection
+  description: Reset the SIM card connection, cancelling the current data session.
+  fields:
+    device_id:
+      name: SIM Card
+      description: The SIM card whose connection to reset
+      required: true
+      selector:
+        device:
+          integration: simbase
+
+set_autodisable:
+  name: Set auto-disable date
+  description: >-
+    Schedule a date on which the SIM card is automatically disabled. Leave the
+    date empty to clear (disable) the auto-disable feature.
+  fields:
+    device_id:
+      name: SIM Card
+      description: The SIM card to configure
+      required: true
+      selector:
+        device:
+          integration: simbase
+    date:
+      name: Auto-disable date
+      description: Date (YYYY-MM-DD) in the future. Leave empty to clear.
+      required: false
+      example: "2026-12-31"
+      selector:
+        text:
+
+set_usage_limits:
+  name: Set usage limits
+  description: >-
+    Configure the data and SMS usage thresholds for a SIM card, and whether the
+    SIM is automatically re-enabled at the start of the next month.
+  fields:
+    device_id:
+      name: SIM Card
+      description: The SIM card to configure
+      required: true
+      selector:
+        device:
+          integration: simbase
+    data_threshold:
+      name: Data threshold (bytes)
+      description: Data usage limit in bytes. Omit to leave unchanged.
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+          unit_of_measurement: bytes
+    sms_threshold:
+      name: SMS threshold
+      description: SMS usage limit (number of messages). Omit to leave unchanged.
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    auto_enable:
+      name: Auto re-enable monthly
+      description: Automatically re-enable the SIM at the start of each month.
+      required: false
+      selector:
+        boolean:
+
+set_rateplan:
+  name: Set rate plan
+  description: Assign a rate plan to a SIM card.
+  fields:
+    device_id:
+      name: SIM Card
+      description: The SIM card to configure
+      required: true
+      selector:
+        device:
+          integration: simbase
+    plan_id:
+      name: Plan ID
+      description: The identifier of the rate plan to assign (e.g. def-eur.eu-1).
+      required: true
+      example: "def-eur.eu-1"
+      selector:
+        text:

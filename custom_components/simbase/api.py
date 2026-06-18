@@ -12,9 +12,9 @@ from .const import (
     API_BASE_URL,
     API_ENDPOINT_SIMCARDS,
     API_ENDPOINT_USAGE,
-    API_ENDPOINT_EVENTS,
-    API_ENDPOINT_ACCOUNT,
     API_ENDPOINT_BALANCE,
+    API_ENDPOINT_PLANS,
+    UNSET,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -123,11 +123,20 @@ class SimbaseApiClient:
         self,
         cursor: str | None = None,
         limit: int = 100,
+        state: str | None = None,
+        coverage: list[str] | None = None,
+        tags: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Get list of SIM cards."""
-        params = {"limit": limit}
+        """Get list of SIM cards, optionally filtered by state/coverage/tags."""
+        params: dict[str, Any] = {"limit": limit}
         if cursor:
             params["cursor"] = cursor
+        if state:
+            params["state"] = state
+        if coverage:
+            params["coverage"] = coverage
+        if tags:
+            params["tags"] = tags
         return await self._request("GET", API_ENDPOINT_SIMCARDS, params=params)
 
     async def get_all_simcards(self) -> list[dict[str, Any]]:
@@ -185,32 +194,128 @@ class SimbaseApiClient:
         return simcards
 
     async def get_simcard(self, iccid: str) -> dict[str, Any]:
-        """Get a specific SIM card by ICCID."""
+        """Get the full details of a specific SIM card by ICCID.
+
+        The details response includes ``connection``, ``location``,
+        ``session_status`` and ``throttle`` which are not present in the
+        ``/simcards`` list response.
+        """
         return await self._request("GET", f"{API_ENDPOINT_SIMCARDS}/{iccid}")
 
-    async def activate_simcard(self, iccid: str) -> dict[str, Any]:
-        """Activate a SIM card."""
+    async def set_simcard_state(self, iccid: str, state: str) -> dict[str, Any]:
+        """Set a SIM card state via POST /simcards/{iccid}/state.
+
+        ``state`` must be one of ``enabled`` or ``disabled``.
+        """
         return await self._request(
             "POST",
-            f"{API_ENDPOINT_SIMCARDS}/{iccid}/activate",
+            f"{API_ENDPOINT_SIMCARDS}/{iccid}/state",
+            json_data={"state": state},
         )
 
+    async def activate_simcard(self, iccid: str) -> dict[str, Any]:
+        """Activate (enable) a SIM card."""
+        return await self.set_simcard_state(iccid, "enabled")
+
     async def deactivate_simcard(self, iccid: str) -> dict[str, Any]:
-        """Deactivate a SIM card."""
+        """Deactivate (disable) a SIM card."""
+        return await self.set_simcard_state(iccid, "disabled")
+
+    async def reset_simcard(self, iccid: str) -> dict[str, Any]:
+        """Reset a SIM card connection (cancel the current data session)."""
         return await self._request(
             "POST",
-            f"{API_ENDPOINT_SIMCARDS}/{iccid}/deactivate",
+            f"{API_ENDPOINT_SIMCARDS}/{iccid}/reset",
+        )
+
+    async def set_autodisable(
+        self, iccid: str, autodisable: str | None
+    ) -> dict[str, Any]:
+        """Set or clear the auto-disable date for a SIM card.
+
+        ``autodisable`` is an ISO date (``YYYY-MM-DD``) in the future, or
+        ``None`` to disable the feature.
+        """
+        return await self._request(
+            "POST",
+            f"{API_ENDPOINT_SIMCARDS}/{iccid}/autodisable",
+            json_data={"autodisable": autodisable},
+        )
+
+    async def get_rateplan(self, iccid: str) -> dict[str, Any]:
+        """Get the rate plans assigned to a SIM card."""
+        return await self._request(
+            "GET",
+            f"{API_ENDPOINT_SIMCARDS}/{iccid}/rateplan",
+        )
+
+    async def set_rateplan(self, iccid: str, plan_id: str) -> dict[str, Any]:
+        """Assign a rate plan to a SIM card."""
+        return await self._request(
+            "POST",
+            f"{API_ENDPOINT_SIMCARDS}/{iccid}/rateplan",
+            json_data={"plan_id": plan_id},
+        )
+
+    async def get_cdrs(
+        self,
+        iccid: str,
+        month: str | None = None,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """Get call detail records (CDRs) for a SIM card."""
+        params: dict[str, Any] = {"limit": limit}
+        if month:
+            params["month"] = month
+        if cursor:
+            params["cursor"] = cursor
+        return await self._request(
+            "GET",
+            f"{API_ENDPOINT_SIMCARDS}/{iccid}/cdrs",
+            params=params,
+        )
+
+    async def get_location_updates(
+        self,
+        iccid: str,
+        month: str | None = None,
+        day: str | None = None,
+        country: str | None = None,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """Get location updates (network attach history) for a SIM card."""
+        params: dict[str, Any] = {"limit": limit}
+        if month:
+            params["month"] = month
+        if day:
+            params["day"] = day
+        if country:
+            params["country"] = country
+        if cursor:
+            params["cursor"] = cursor
+        return await self._request(
+            "GET",
+            f"{API_ENDPOINT_SIMCARDS}/{iccid}/location-updates",
+            params=params,
         )
 
     async def get_usage(
         self,
         cursor: str | None = None,
         limit: int = 100,
+        month: str | None = None,
     ) -> dict[str, Any]:
-        """Get usage data for SIM cards."""
-        params = {"limit": limit}
+        """Get usage data for SIM cards.
+
+        ``month`` (``YYYY-MM``) filters by month; defaults to the current month.
+        """
+        params: dict[str, Any] = {"limit": limit}
         if cursor:
             params["cursor"] = cursor
+        if month:
+            params["month"] = month
         return await self._request("GET", API_ENDPOINT_USAGE, params=params)
 
     async def get_all_usage(self) -> list[dict[str, Any]]:
@@ -220,7 +325,12 @@ class SimbaseApiClient:
 
         while True:
             response = await self.get_usage(cursor=cursor)
-            data = response.get("data", [])
+            # The v2 usage endpoint returns records under "simcards".
+            data = (
+                response.get("simcards")
+                or response.get("data")
+                or []
+            )
             usage_data.extend(data)
 
             if not response.get("has_more", False):
@@ -234,19 +344,6 @@ class SimbaseApiClient:
 
         return usage_data
 
-    async def get_events(
-        self,
-        since: str | None = None,
-        cursor: str | None = None,
-    ) -> dict[str, Any]:
-        """Get events."""
-        params = {}
-        if since:
-            params["since"] = since
-        if cursor:
-            params["cursor"] = cursor
-        return await self._request("GET", API_ENDPOINT_EVENTS, params=params)
-
     async def send_sms(self, iccid: str, message: str) -> dict[str, Any]:
         """Send SMS to a SIM card."""
         return await self._request(
@@ -255,13 +352,28 @@ class SimbaseApiClient:
             json_data={"message": message},
         )
 
-    async def get_sms(self, iccid: str, limit: int = 50) -> list[dict[str, Any]]:
-        """Get SMS messages for a SIM card."""
+    async def get_sms(
+        self,
+        iccid: str,
+        limit: int = 50,
+        direction: str | None = None,
+        day: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Get SMS messages for a SIM card.
+
+        ``direction`` filters by ``mt`` (received) or ``mo`` (sent);
+        ``day`` (``YYYY-MM-DD``) filters by day.
+        """
+        params: dict[str, Any] = {"limit": limit}
+        if direction:
+            params["direction"] = direction
+        if day:
+            params["day"] = day
         try:
             response = await self._request(
                 "GET",
                 f"{API_ENDPOINT_SIMCARDS}/{iccid}/sms",
-                params={"limit": limit},
+                params=params,
             )
             # Handle different response formats
             if isinstance(response, list):
@@ -282,43 +394,68 @@ class SimbaseApiClient:
     async def update_simcard(
         self,
         iccid: str,
-        name: str | None = None,
-        tags: list[str] | None = None,
+        name: Any = UNSET,
+        tags: Any = UNSET,
+        imei_lock: Any = UNSET,
+        throttling_policy: Any = UNSET,
+        usage_limits_auto_enable: Any = UNSET,
+        usage_limits_data_threshold: Any = UNSET,
+        usage_limits_sms_threshold: Any = UNSET,
     ) -> dict[str, Any]:
-        """Update SIM card details."""
-        data = {}
-        if name is not None:
-            data["name"] = name
-        if tags is not None:
-            data["tags"] = tags
+        """Update SIM card details via PATCH /simcards/{iccid}.
+
+        Any argument left as ``UNSET`` is omitted from the request; passing an
+        explicit ``None`` sends ``null`` to clear a nullable field.
+        """
+        candidates = {
+            "name": name,
+            "tags": tags,
+            "imei_lock": imei_lock,
+            "throttling_policy": throttling_policy,
+            "usage_limits_auto_enable": usage_limits_auto_enable,
+            "usage_limits_data_threshold": usage_limits_data_threshold,
+            "usage_limits_sms_threshold": usage_limits_sms_threshold,
+        }
+        data = {key: value for key, value in candidates.items() if value is not UNSET}
         return await self._request(
             "PATCH",
             f"{API_ENDPOINT_SIMCARDS}/{iccid}",
             json_data=data,
         )
 
-    async def get_account(self) -> dict[str, Any]:
-        """Get account information."""
-        try:
-            return await self._request("GET", API_ENDPOINT_ACCOUNT)
-        except SimbaseApiError:
-            # Fallback - return empty dict if endpoint not available
-            _LOGGER.debug("Account endpoint not available")
-            return {}
+    async def set_usage_limits(
+        self,
+        iccid: str,
+        auto_enable: Any = UNSET,
+        data_threshold: Any = UNSET,
+        sms_threshold: Any = UNSET,
+    ) -> dict[str, Any]:
+        """Set or clear usage limits for a SIM.
+
+        Pass ``None`` for ``data_threshold``/``sms_threshold`` to clear the
+        limit; omit an argument to leave it unchanged.
+        """
+        return await self.update_simcard(
+            iccid,
+            usage_limits_auto_enable=auto_enable,
+            usage_limits_data_threshold=data_threshold,
+            usage_limits_sms_threshold=sms_threshold,
+        )
 
     async def get_balance(self) -> dict[str, Any]:
-        """Get account balance."""
+        """Get account balance (GET /account/balance)."""
         try:
             return await self._request("GET", API_ENDPOINT_BALANCE)
         except SimbaseApiError:
-            # Try alternate endpoint
-            try:
-                account = await self.get_account()
-                if "balance" in account:
-                    return {"balance": account["balance"]}
-            except SimbaseApiError:
-                pass
             _LOGGER.debug("Balance endpoint not available")
+            return {}
+
+    async def get_account_plans(self) -> dict[str, Any]:
+        """Get the rate plans available to the account (GET /account/plans)."""
+        try:
+            return await self._request("GET", API_ENDPOINT_PLANS)
+        except SimbaseApiError:
+            _LOGGER.debug("Account plans endpoint not available")
             return {}
 
     async def activate_all_simcards(self) -> list[dict[str, Any]]:

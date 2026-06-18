@@ -29,11 +29,19 @@ from .const import (
     CONF_ENABLE_SENSORS,
     CONF_ENABLE_BINARY_SENSORS,
     CONF_ENABLE_SWITCH,
+    CONF_ENABLE_DEVICE_TRACKER,
+    CONF_ENABLE_USAGE_LIMITS,
+    CONF_ENABLE_PLAN_CONTROLS,
+    CONF_ENABLE_RESET_BUTTON,
     AVAILABLE_SENSORS,
     AVAILABLE_BINARY_SENSORS,
     DEFAULT_SENSORS,
     DEFAULT_BINARY_SENSORS,
     DEFAULT_ENABLE_SWITCH,
+    DEFAULT_ENABLE_DEVICE_TRACKER,
+    DEFAULT_ENABLE_USAGE_LIMITS,
+    DEFAULT_ENABLE_PLAN_CONTROLS,
+    DEFAULT_ENABLE_RESET_BUTTON,
     SENSOR_DATA_USAGE,
     SENSOR_STATUS,
     SENSOR_PLAN,
@@ -46,7 +54,11 @@ from .const import (
     SENSOR_IMEI,
     SENSOR_MSISDN,
     SENSOR_IP_ADDRESS,
+    SENSOR_NETWORK,
+    SENSOR_SESSION_STATUS,
+    SENSOR_LOCATION,
     BINARY_SENSOR_ONLINE,
+    BINARY_SENSOR_THROTTLED,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -142,6 +154,18 @@ class SimbaseConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_ENABLE_SENSORS: enabled_sensors,
                     CONF_ENABLE_BINARY_SENSORS: enabled_binary,
                     CONF_ENABLE_SWITCH: user_input.get(CONF_ENABLE_SWITCH, DEFAULT_ENABLE_SWITCH),
+                    CONF_ENABLE_DEVICE_TRACKER: user_input.get(
+                        CONF_ENABLE_DEVICE_TRACKER, DEFAULT_ENABLE_DEVICE_TRACKER
+                    ),
+                    CONF_ENABLE_USAGE_LIMITS: user_input.get(
+                        CONF_ENABLE_USAGE_LIMITS, DEFAULT_ENABLE_USAGE_LIMITS
+                    ),
+                    CONF_ENABLE_PLAN_CONTROLS: user_input.get(
+                        CONF_ENABLE_PLAN_CONTROLS, DEFAULT_ENABLE_PLAN_CONTROLS
+                    ),
+                    CONF_ENABLE_RESET_BUTTON: user_input.get(
+                        CONF_ENABLE_RESET_BUTTON, DEFAULT_ENABLE_RESET_BUTTON
+                    ),
                 },
             )
 
@@ -171,6 +195,23 @@ class SimbaseConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         f"binary_{BINARY_SENSOR_ONLINE}",
                         default=BINARY_SENSOR_ONLINE in DEFAULT_BINARY_SENSORS,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    # Connectivity
+                    vol.Required(
+                        f"sensor_{SENSOR_NETWORK}",
+                        default=SENSOR_NETWORK in DEFAULT_SENSORS,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        f"sensor_{SENSOR_SESSION_STATUS}",
+                        default=SENSOR_SESSION_STATUS in DEFAULT_SENSORS,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        f"sensor_{SENSOR_LOCATION}",
+                        default=SENSOR_LOCATION in DEFAULT_SENSORS,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        f"binary_{BINARY_SENSOR_THROTTLED}",
+                        default=BINARY_SENSOR_THROTTLED in DEFAULT_BINARY_SENSORS,
                     ): BooleanSelector(BooleanSelectorConfig()),
                     # Messaging
                     vol.Required(
@@ -212,6 +253,22 @@ class SimbaseConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_ENABLE_SWITCH,
                         default=DEFAULT_ENABLE_SWITCH,
                     ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_USAGE_LIMITS,
+                        default=DEFAULT_ENABLE_USAGE_LIMITS,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_PLAN_CONTROLS,
+                        default=DEFAULT_ENABLE_PLAN_CONTROLS,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_RESET_BUTTON,
+                        default=DEFAULT_ENABLE_RESET_BUTTON,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_DEVICE_TRACKER,
+                        default=DEFAULT_ENABLE_DEVICE_TRACKER,
+                    ): BooleanSelector(BooleanSelectorConfig()),
                 }
             ),
         )
@@ -248,6 +305,18 @@ class SimbaseOptionsFlowHandler(OptionsFlow):
                     CONF_ENABLE_SENSORS: enabled_sensors,
                     CONF_ENABLE_BINARY_SENSORS: enabled_binary,
                     CONF_ENABLE_SWITCH: user_input.get(CONF_ENABLE_SWITCH, DEFAULT_ENABLE_SWITCH),
+                    CONF_ENABLE_DEVICE_TRACKER: user_input.get(
+                        CONF_ENABLE_DEVICE_TRACKER, DEFAULT_ENABLE_DEVICE_TRACKER
+                    ),
+                    CONF_ENABLE_USAGE_LIMITS: user_input.get(
+                        CONF_ENABLE_USAGE_LIMITS, DEFAULT_ENABLE_USAGE_LIMITS
+                    ),
+                    CONF_ENABLE_PLAN_CONTROLS: user_input.get(
+                        CONF_ENABLE_PLAN_CONTROLS, DEFAULT_ENABLE_PLAN_CONTROLS
+                    ),
+                    CONF_ENABLE_RESET_BUTTON: user_input.get(
+                        CONF_ENABLE_RESET_BUTTON, DEFAULT_ENABLE_RESET_BUTTON
+                    ),
                 },
             )
 
@@ -260,6 +329,18 @@ class SimbaseOptionsFlowHandler(OptionsFlow):
         )
         current_switch = self.config_entry.options.get(
             CONF_ENABLE_SWITCH, DEFAULT_ENABLE_SWITCH
+        )
+        current_device_tracker = self.config_entry.options.get(
+            CONF_ENABLE_DEVICE_TRACKER, DEFAULT_ENABLE_DEVICE_TRACKER
+        )
+        current_usage_limits = self.config_entry.options.get(
+            CONF_ENABLE_USAGE_LIMITS, DEFAULT_ENABLE_USAGE_LIMITS
+        )
+        current_plan_controls = self.config_entry.options.get(
+            CONF_ENABLE_PLAN_CONTROLS, DEFAULT_ENABLE_PLAN_CONTROLS
+        )
+        current_reset_button = self.config_entry.options.get(
+            CONF_ENABLE_RESET_BUTTON, DEFAULT_ENABLE_RESET_BUTTON
         )
 
         return self.async_show_form(
@@ -303,6 +384,23 @@ class SimbaseOptionsFlowHandler(OptionsFlow):
                         f"binary_{BINARY_SENSOR_ONLINE}",
                         default=BINARY_SENSOR_ONLINE in current_binary_sensors,
                     ): BooleanSelector(BooleanSelectorConfig()),
+                    # Connectivity
+                    vol.Required(
+                        f"sensor_{SENSOR_NETWORK}",
+                        default=SENSOR_NETWORK in current_sensors,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        f"sensor_{SENSOR_SESSION_STATUS}",
+                        default=SENSOR_SESSION_STATUS in current_sensors,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        f"sensor_{SENSOR_LOCATION}",
+                        default=SENSOR_LOCATION in current_sensors,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        f"binary_{BINARY_SENSOR_THROTTLED}",
+                        default=BINARY_SENSOR_THROTTLED in current_binary_sensors,
+                    ): BooleanSelector(BooleanSelectorConfig()),
                     # Messaging
                     vol.Required(
                         f"sensor_{SENSOR_SMS_COUNT}",
@@ -342,6 +440,22 @@ class SimbaseOptionsFlowHandler(OptionsFlow):
                     vol.Required(
                         CONF_ENABLE_SWITCH,
                         default=current_switch,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_USAGE_LIMITS,
+                        default=current_usage_limits,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_PLAN_CONTROLS,
+                        default=current_plan_controls,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_RESET_BUTTON,
+                        default=current_reset_button,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_DEVICE_TRACKER,
+                        default=current_device_tracker,
                     ): BooleanSelector(BooleanSelectorConfig()),
                 }
             ),

@@ -33,6 +33,15 @@ def _is_sim_online(data: dict[str, Any]) -> bool:
     return status in ("active", "enabled", "online") or data.get("online") is True
 
 
+def _is_throttled(data: dict[str, Any]) -> bool:
+    """Check if the SIM card is currently throttled.
+
+    The v2 details endpoint returns ``throttle`` as a string describing the
+    active throttle policy, or null when not throttled.
+    """
+    return bool(data.get("throttle"))
+
+
 BINARY_SENSOR_DESCRIPTIONS: tuple[SimbaseBinarySensorEntityDescription, ...] = (
     SimbaseBinarySensorEntityDescription(
         key="online",
@@ -40,48 +49,19 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[SimbaseBinarySensorEntityDescription, ...] = (
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         is_on_fn=_is_sim_online,
         attr_fn=lambda data: {
-            "last_seen": data.get("last_seen") or data.get("last_activity"),
+            "session_status": data.get("session_status"),
         },
-    ),
-    SimbaseBinarySensorEntityDescription(
-        key="data_limit_exceeded",
-        translation_key="data_limit_exceeded",
-        device_class=BinarySensorDeviceClass.PROBLEM,
-        is_on_fn=lambda data: _check_data_limit_exceeded(data),
     ),
     SimbaseBinarySensorEntityDescription(
         key="throttled",
         translation_key="throttled",
         device_class=BinarySensorDeviceClass.PROBLEM,
-        is_on_fn=lambda data: data.get("throttled", False) or data.get("is_throttled", False),
+        is_on_fn=_is_throttled,
         attr_fn=lambda data: {
-            "throttle_speed": data.get("throttle_speed"),
-        },
-    ),
-    SimbaseBinarySensorEntityDescription(
-        key="roaming",
-        translation_key="roaming",
-        is_on_fn=lambda data: data.get("roaming", False) or data.get("is_roaming", False),
-        attr_fn=lambda data: {
-            "home_network": data.get("home_network"),
-            "current_network": data.get("network") or data.get("operator"),
+            "throttle": data.get("throttle"),
         },
     ),
 )
-
-
-def _check_data_limit_exceeded(data: dict[str, Any]) -> bool | None:
-    """Check if data limit is exceeded."""
-    usage = data.get("usage", {}).get("data_usage_bytes") or data.get("data_usage_bytes")
-    limit = data.get("data_limit_bytes")
-
-    if usage is None or limit is None:
-        return None
-
-    try:
-        return float(usage) >= float(limit)
-    except (ValueError, TypeError):
-        return None
 
 
 async def async_setup_entry(

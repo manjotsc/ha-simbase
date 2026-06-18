@@ -1,6 +1,7 @@
 """Data coordinator for Simbase integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Any
@@ -10,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SimbaseApiClient, SimbaseApiError
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL
+from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, UNSET
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,8 +39,8 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.api_client = api_client
         self._simcards: dict[str, dict[str, Any]] = {}
         self._usage: dict[str, dict[str, Any]] = {}
-        self._account: dict[str, Any] = {}
         self._balance: dict[str, Any] = {}
+        self._plans: list[dict[str, Any]] = []
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API."""
@@ -79,37 +80,35 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if iccid in self._usage:
                     sim["usage"] = self._usage[iccid]
 
-            # Extract network operator from SIM data if available
-            # Simbase may include network info in various fields
+            # Fetch per-SIM details to enrich with connection / location /
+            # session status / throttle, which the /simcards list omits.
             for iccid, sim in self._simcards.items():
-                # Try to find network operator in various possible fields
-                operator = (
-                    sim.get("operator")
-                    or sim.get("network")
-                    or sim.get("carrier")
-                    or sim.get("operator_name")
-                    or sim.get("network_name")
-                    or sim.get("current_operator")
-                    or sim.get("last_operator")
-                    or sim.get("connected_network")
-                )
-                if operator:
-                    sim["network_operator"] = operator
-                # Check for MCC/MNC
-                mcc = sim.get("mcc") or sim.get("last_mcc")
-                mnc = sim.get("mnc") or sim.get("last_mnc")
-                if mcc:
-                    sim["mcc"] = mcc
-                if mnc:
-                    sim["mnc"] = mnc
-
-            # Fetch account data (may not be available)
-            try:
-                self._account = await self.api_client.get_account()
-                _LOGGER.debug("Account data: %s", self._account)
-            except SimbaseApiError as err:
-                _LOGGER.debug("Failed to fetch account data: %s", err)
-                self._account = {}
+                try:
+                    details = await self.api_client.get_simcard(iccid)
+                except SimbaseApiError as err:
+                    _LOGGER.debug("Failed to fetch details for %s: %s", iccid, err)
+                    continue
+                if not isinstance(details, dict):
+                    continue
+                # Merge detail-only fields into the SIM record.
+                for key in (
+                    "connection",
+                    "location",
+                    "session_status",
+                    "throttle",
+                ):
+                    if key in details:
+                        sim[key] = details[key]
+                # Derive the network operator from the live connection.
+                connection = details.get("connection") or {}
+                if isinstance(connection, dict):
+                    if connection.get("carrier"):
+                        sim["network_operator"] = connection["carrier"]
+                    if connection.get("mcc"):
+                        sim["mcc"] = connection["mcc"]
+                    if connection.get("mnc"):
+                        sim["mnc"] = connection["mnc"]
+                await asyncio.sleep(0.1)  # Rate limit protection
 
             # Fetch balance data
             try:
@@ -118,6 +117,14 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except SimbaseApiError as err:
                 _LOGGER.debug("Failed to fetch balance data: %s", err)
                 self._balance = {}
+
+            # Fetch available rate plans (for the rate plan select entity)
+            try:
+                plans_response = await self.api_client.get_account_plans()
+                plans = plans_response.get("plans") if isinstance(plans_response, dict) else None
+                self._plans = plans if isinstance(plans, list) else []
+            except SimbaseApiError as err:
+                _LOGGER.debug("Failed to fetch account plans: %s", err)
 
             # Calculate totals from SIM data
             total_data_usage = 0
@@ -157,7 +164,6 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "simcards": self._simcards,
                 "usage": self._usage,
                 "count": len(self._simcards),
-                "account": self._account,
                 "balance": self._balance,
                 "totals": {
                     "data_usage_bytes": total_data_usage,
@@ -197,9 +203,51 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Send SMS to a SIM card."""
         await self.api_client.send_sms(iccid, message)
 
+    async def async_reset_connection(self, iccid: str) -> None:
+        """Reset a SIM card connection (cancel the current data session)."""
+        await self.api_client.reset_simcard(iccid)
+        await self.async_request_refresh()
+
+    async def async_set_autodisable(
+        self, iccid: str, autodisable: str | None
+    ) -> None:
+        """Set or clear the auto-disable date for a SIM card."""
+        await self.api_client.set_autodisable(iccid, autodisable)
+        await self.async_request_refresh()
+
+    async def async_set_usage_limits(
+        self,
+        iccid: str,
+        auto_enable: Any = UNSET,
+        data_threshold: Any = UNSET,
+        sms_threshold: Any = UNSET,
+    ) -> None:
+        """Set or clear usage limits for a SIM card.
+
+        Pass ``None`` for a threshold to clear it; omit to leave unchanged.
+        """
+        await self.api_client.set_usage_limits(
+            iccid,
+            auto_enable=auto_enable,
+            data_threshold=data_threshold,
+            sms_threshold=sms_threshold,
+        )
+        # Await an immediate refresh so entities read the confirmed value
+        # rather than the pre-write (debounced) data.
+        await self.async_refresh()
+
+    async def async_set_rateplan(self, iccid: str, plan_id: str) -> None:
+        """Assign a rate plan to a SIM card."""
+        await self.api_client.set_rateplan(iccid, plan_id)
+        await self.async_request_refresh()
+
     def get_account_data(self) -> dict[str, Any]:
-        """Get account data."""
-        return self._account
+        """Get account data (no longer provided by the v2 API)."""
+        return {}
+
+    def get_rate_plans(self) -> list[dict[str, Any]]:
+        """Return the rate plans available to the account."""
+        return self._plans
 
     def get_balance(self) -> dict[str, Any]:
         """Get balance data."""

@@ -17,6 +17,10 @@
           "sensor_status": "Status",
           "sensor_plan": "Coverage Plan",
           "binary_online": "Online Status",
+          "sensor_network": "Network Operator",
+          "sensor_session_status": "Session Status",
+          "sensor_location": "Location",
+          "binary_throttled": "Throttled",
           "sensor_sms_count": "SMS Total",
           "sensor_sms_sent": "SMS Sent",
           "sensor_sms_received": "SMS Received",
@@ -25,7 +29,11 @@
           "sensor_msisdn": "Phone Number",
           "sensor_ip_address": "IP Address",
           "sensor_hardware": "Hardware",
-          "enable_switch": "Activation Switch"
+          "enable_switch": "Activation Switch",
+          "enable_usage_limits": "Usage Limit Controls",
+          "enable_plan_controls": "Rate Plan & Auto-disable Controls",
+          "enable_reset_button": "Reset Connection Button",
+          "enable_device_tracker": "Device Tracker"
         },
         "data_description": {
           "sensor_data_usage": "Current data usage for the billing period",
@@ -33,6 +41,10 @@
           "sensor_status": "Current SIM card status (active, inactive, suspended)",
           "sensor_plan": "Coverage plan assigned to the SIM",
           "binary_online": "Whether the SIM card is currently connected",
+          "sensor_network": "Carrier the SIM is currently connected to",
+          "sensor_session_status": "Whether the SIM has an active data session",
+          "sensor_location": "Country and cell location of the SIM",
+          "binary_throttled": "Whether the SIM is currently throttled",
           "sensor_sms_count": "Total SMS messages (sent + received)",
           "sensor_sms_sent": "Number of SMS messages sent",
           "sensor_sms_received": "Number of SMS messages received",
@@ -41,7 +53,11 @@
           "sensor_msisdn": "Phone number (MSISDN) of the SIM",
           "sensor_ip_address": "Current IP address assigned to the SIM",
           "sensor_hardware": "Hardware device the SIM is installed in",
-          "enable_switch": "Control to activate or deactivate SIM cards"
+          "enable_switch": "Control to activate or deactivate SIM cards",
+          "enable_usage_limits": "Data/SMS limit numbers and their enable switches",
+          "enable_plan_controls": "Rate plan selector and auto-disable date",
+          "enable_reset_button": "Button to reset a SIM's connection",
+          "enable_device_tracker": "Map tracker using the SIM's cell location"
         }
       }
     },
@@ -66,6 +82,10 @@
           "sensor_status": "Status",
           "sensor_plan": "Coverage Plan",
           "binary_online": "Online Status",
+          "sensor_network": "Network Operator",
+          "sensor_session_status": "Session Status",
+          "sensor_location": "Location",
+          "binary_throttled": "Throttled",
           "sensor_sms_count": "SMS Total",
           "sensor_sms_sent": "SMS Sent",
           "sensor_sms_received": "SMS Received",
@@ -74,7 +94,11 @@
           "sensor_msisdn": "Phone Number",
           "sensor_ip_address": "IP Address",
           "sensor_hardware": "Hardware",
-          "enable_switch": "Activation Switch"
+          "enable_switch": "Activation Switch",
+          "enable_usage_limits": "Usage Limit Controls",
+          "enable_plan_controls": "Rate Plan & Auto-disable Controls",
+          "enable_reset_button": "Reset Connection Button",
+          "enable_device_tracker": "Device Tracker"
         },
         "data_description": {
           "scan_interval": "How often to fetch data from Simbase (60-3600 seconds)",
@@ -83,6 +107,10 @@
           "sensor_status": "Current SIM card status (active, inactive, suspended)",
           "sensor_plan": "Coverage plan assigned to the SIM",
           "binary_online": "Whether the SIM card is currently connected",
+          "sensor_network": "Carrier the SIM is currently connected to",
+          "sensor_session_status": "Whether the SIM has an active data session",
+          "sensor_location": "Country and cell location of the SIM",
+          "binary_throttled": "Whether the SIM is currently throttled",
           "sensor_sms_count": "Total SMS messages (sent + received)",
           "sensor_sms_sent": "Number of SMS messages sent",
           "sensor_sms_received": "Number of SMS messages received",
@@ -91,7 +119,11 @@
           "sensor_msisdn": "Phone number (MSISDN) of the SIM",
           "sensor_ip_address": "Current IP address assigned to the SIM",
           "sensor_hardware": "Hardware device the SIM is installed in",
-          "enable_switch": "Control to activate or deactivate SIM cards"
+          "enable_switch": "Control to activate or deactivate SIM cards",
+          "enable_usage_limits": "Data/SMS limit numbers and their enable switches",
+          "enable_plan_controls": "Rate plan selector and auto-disable date",
+          "enable_reset_button": "Button to reset a SIM's connection",
+          "enable_device_tracker": "Map tracker using the SIM's cell location"
         }
       }
     }
@@ -101,20 +133,17 @@
       "data_usage": {
         "name": "Data Usage"
       },
-      "data_limit": {
-        "name": "Data Limit"
-      },
       "sim_status": {
         "name": "Status"
       },
       "network": {
         "name": "Network Operator"
       },
-      "signal_strength": {
-        "name": "Signal Strength"
+      "session_status": {
+        "name": "Session Status"
       },
-      "connection_type": {
-        "name": "Connection Type"
+      "location": {
+        "name": "Location"
       },
       "ip_address": {
         "name": "IP Address"
@@ -178,19 +207,22 @@
       "online": {
         "name": "Online"
       },
-      "data_limit_exceeded": {
-        "name": "Data Limit Exceeded"
-      },
       "throttled": {
         "name": "Throttled"
-      },
-      "roaming": {
-        "name": "Roaming"
       }
     },
     "switch": {
       "activation": {
         "name": "Active"
+      },
+      "usage_limits_auto_enable": {
+        "name": "Auto Re-enable Monthly"
+      },
+      "data_limit_enabled": {
+        "name": "Data Limit Enabled"
+      },
+      "sms_limit_enabled": {
+        "name": "SMS Limit Enabled"
       }
     },
     "button": {
@@ -199,6 +231,27 @@
       },
       "deactivate_all_sims": {
         "name": "Deactivate All SIMs"
+      },
+      "reset_connection": {
+        "name": "Reset Connection"
+      }
+    },
+    "number": {
+      "data_limit": {
+        "name": "Data Limit"
+      },
+      "sms_limit": {
+        "name": "SMS Limit"
+      }
+    },
+    "select": {
+      "rateplan": {
+        "name": "Rate Plan"
+      }
+    },
+    "date": {
+      "autodisable": {
+        "name": "Auto-disable Date"
       }
     }
   },
@@ -248,6 +301,66 @@
         "limit": {
           "name": "Limit",
           "description": "Maximum number of messages to retrieve"
+        }
+      }
+    },
+    "reset_connection": {
+      "name": "Reset connection",
+      "description": "Reset the SIM card connection, cancelling the current data session.",
+      "fields": {
+        "device_id": {
+          "name": "SIM Card",
+          "description": "The SIM card whose connection to reset"
+        }
+      }
+    },
+    "set_autodisable": {
+      "name": "Set auto-disable date",
+      "description": "Schedule a date on which the SIM card is automatically disabled, or clear it.",
+      "fields": {
+        "device_id": {
+          "name": "SIM Card",
+          "description": "The SIM card to configure"
+        },
+        "date": {
+          "name": "Auto-disable date",
+          "description": "Date (YYYY-MM-DD) in the future. Leave empty to clear."
+        }
+      }
+    },
+    "set_usage_limits": {
+      "name": "Set usage limits",
+      "description": "Configure the data and SMS usage thresholds for a SIM card.",
+      "fields": {
+        "device_id": {
+          "name": "SIM Card",
+          "description": "The SIM card to configure"
+        },
+        "data_threshold": {
+          "name": "Data threshold (bytes)",
+          "description": "Data usage limit in bytes. Omit to leave unchanged."
+        },
+        "sms_threshold": {
+          "name": "SMS threshold",
+          "description": "SMS usage limit (number of messages). Omit to leave unchanged."
+        },
+        "auto_enable": {
+          "name": "Auto re-enable monthly",
+          "description": "Automatically re-enable the SIM at the start of each month."
+        }
+      }
+    },
+    "set_rateplan": {
+      "name": "Set rate plan",
+      "description": "Assign a rate plan to a SIM card.",
+      "fields": {
+        "device_id": {
+          "name": "SIM Card",
+          "description": "The SIM card to configure"
+        },
+        "plan_id": {
+          "name": "Plan ID",
+          "description": "The identifier of the rate plan to assign."
         }
       }
     }

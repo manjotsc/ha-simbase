@@ -49,14 +49,28 @@ Monitor and control your [Simbase](https://www.simbase.com/) IoT SIM cards direc
 | Sensor | Description |
 |--------|-------------|
 | Data Usage | Current month data consumption |
-| Status | SIM state (active/disabled/suspended) |
+| Status | SIM state (enabled/disabled) |
 | Monthly Cost | Current month costs |
 | SMS Sent/Received | Message counts |
 | Coverage Plan | Current plan |
+| Network Operator | Carrier the SIM is currently connected to (MCC/MNC, country) |
+| Session Status | Whether the SIM has an active data session |
+| Location | Country and cell location (lat/lon/cell ID when available) |
 | Hardware | Device info |
 | IMEI | Device identifier |
 | MSISDN | Phone number |
 | IP Address | Assigned IP |
+
+### Per-SIM Binary Sensors
+
+| Binary Sensor | Description |
+|---------------|-------------|
+| Online | Whether the SIM is enabled/connected |
+| Throttled | Whether the SIM is currently throttled |
+
+### Per-SIM Device Tracker
+
+Each SIM also creates a **device tracker** that places it on the Home Assistant map using the cell-based `latitude`/`longitude`. Coordinates are approximate (derived from the serving cell, not GPS) and may be unavailable when the network doesn't return a position.
 
 ### Account Sensors
 
@@ -70,11 +84,20 @@ Monitor and control your [Simbase](https://www.simbase.com/) IoT SIM cards direc
 
 ### Controls
 
-| Entity | Description |
-|--------|-------------|
-| SIM Activation Switch | Enable/disable individual SIMs |
-| Activate All Button | Enable all SIMs at once |
-| Deactivate All Button | Disable all SIMs at once |
+| Entity | Type | Description |
+|--------|------|-------------|
+| SIM Activation | Switch | Enable/disable an individual SIM |
+| Auto Re-enable Monthly | Switch | Re-enable the SIM at the start of each month (`usage_limits_auto_enable`) |
+| Data Limit | Number | Data usage threshold in MB (`usage_limits_data_threshold`) |
+| Data Limit Enabled | Switch | Turn the data limit on/off (off clears the threshold) |
+| SMS Limit | Number | SMS usage threshold (`usage_limits_sms_threshold`) |
+| SMS Limit Enabled | Switch | Turn the SMS limit on/off (off clears the threshold) |
+| Auto-disable Date | Date | Date the SIM is automatically disabled |
+| Rate Plan | Select | Assign a rate plan (options from `/account/plans`) |
+| Reset Connection | Button | Cancel the SIM's current data session |
+| Activate All / Deactivate All | Button | Enable/disable all SIMs at once |
+
+> Setting a **Data/SMS Limit** number turns its **Enabled** switch on automatically. Toggle the switch **off** to clear the limit (set it back to "no limit"). To clear the **Auto-disable Date**, call the `simbase.set_autodisable` service with an empty date (a Date entity can't represent an empty value).
 
 ### Services
 
@@ -84,19 +107,20 @@ Monitor and control your [Simbase](https://www.simbase.com/) IoT SIM cards direc
 | `simbase.deactivate_sim` | Deactivate a SIM card |
 | `simbase.send_sms` | Send SMS to a SIM card |
 | `simbase.read_sms` | Read SMS messages from a SIM card |
+| `simbase.reset_connection` | Reset a SIM's connection (cancel the current data session) |
+| `simbase.set_autodisable` | Schedule (or clear) an automatic disable date |
+| `simbase.set_usage_limits` | Set data/SMS usage thresholds and monthly auto re-enable |
+| `simbase.set_rateplan` | Assign a rate plan to a SIM card |
 
 ## Known Limitations
 
-The following sensors are **not available** due to Simbase API limitations:
+The following are **not available** due to Simbase API limitations:
 
 | Sensor | Reason |
 |--------|--------|
-| Network Operator | No network info in API |
 | Data Limit | Not provided by API |
 | Signal Strength | Not provided by API |
 | Connection Type | Not provided by API |
-| Data Limit Exceeded | Not provided by API |
-| Throttled Status | Not provided by API |
 | Roaming Status | Not provided by API |
 
 ## License

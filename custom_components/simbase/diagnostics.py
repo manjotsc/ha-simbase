@@ -19,6 +19,11 @@ TO_REDACT = {
     "ip_address",
     "ip",
     "phone_number",
+    "public_ip",
+    "private_network_ip",
+    "lat",
+    "lon",
+    "cell_id",
 }
 
 

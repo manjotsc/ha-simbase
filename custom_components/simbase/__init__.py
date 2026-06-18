@@ -17,12 +17,26 @@ from .const import (
     SERVICE_DEACTIVATE_SIM,
     SERVICE_SEND_SMS,
     SERVICE_READ_SMS,
+    SERVICE_RESET_CONNECTION,
+    SERVICE_SET_AUTODISABLE,
+    SERVICE_SET_USAGE_LIMITS,
+    SERVICE_SET_RATEPLAN,
+    UNSET,
 )
 from .coordinator import SimbaseDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.BUTTON]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.BUTTON,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.DATE,
+    Platform.DEVICE_TRACKER,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -148,6 +162,70 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
         _LOGGER.error("SIM card with ICCID %s not found", iccid)
         return {"success": False, "error": "SIM not found", "messages": []}
 
+    def _resolve_coordinator(iccid: str) -> SimbaseDataUpdateCoordinator | None:
+        """Return the coordinator that manages the given ICCID."""
+        for entry_data in hass.data[DOMAIN].values():
+            coordinator: SimbaseDataUpdateCoordinator = entry_data["coordinator"]
+            if coordinator.get_simcard(iccid):
+                return coordinator
+        return None
+
+    async def async_reset_connection(call: ServiceCall) -> None:
+        """Reset a SIM card connection."""
+        iccid = _get_iccid_from_device(hass, call.data["device_id"])
+        if not iccid:
+            _LOGGER.error("Could not find ICCID for device %s", call.data["device_id"])
+            return
+        coordinator = _resolve_coordinator(iccid)
+        if coordinator is None:
+            _LOGGER.error("SIM card with ICCID %s not found", iccid)
+            return
+        await coordinator.async_reset_connection(iccid)
+
+    async def async_set_autodisable(call: ServiceCall) -> None:
+        """Set or clear the auto-disable date for a SIM card."""
+        iccid = _get_iccid_from_device(hass, call.data["device_id"])
+        if not iccid:
+            _LOGGER.error("Could not find ICCID for device %s", call.data["device_id"])
+            return
+        coordinator = _resolve_coordinator(iccid)
+        if coordinator is None:
+            _LOGGER.error("SIM card with ICCID %s not found", iccid)
+            return
+        # An empty/omitted date clears the auto-disable feature.
+        date = call.data.get("date") or None
+        await coordinator.async_set_autodisable(iccid, date)
+
+    async def async_set_usage_limits(call: ServiceCall) -> None:
+        """Set usage limits for a SIM card."""
+        iccid = _get_iccid_from_device(hass, call.data["device_id"])
+        if not iccid:
+            _LOGGER.error("Could not find ICCID for device %s", call.data["device_id"])
+            return
+        coordinator = _resolve_coordinator(iccid)
+        if coordinator is None:
+            _LOGGER.error("SIM card with ICCID %s not found", iccid)
+            return
+        # Omitted fields stay UNSET (unchanged); only provided fields are sent.
+        await coordinator.async_set_usage_limits(
+            iccid,
+            auto_enable=call.data.get("auto_enable", UNSET),
+            data_threshold=call.data.get("data_threshold", UNSET),
+            sms_threshold=call.data.get("sms_threshold", UNSET),
+        )
+
+    async def async_set_rateplan(call: ServiceCall) -> None:
+        """Assign a rate plan to a SIM card."""
+        iccid = _get_iccid_from_device(hass, call.data["device_id"])
+        if not iccid:
+            _LOGGER.error("Could not find ICCID for device %s", call.data["device_id"])
+            return
+        coordinator = _resolve_coordinator(iccid)
+        if coordinator is None:
+            _LOGGER.error("SIM card with ICCID %s not found", iccid)
+            return
+        await coordinator.async_set_rateplan(iccid, call.data["plan_id"])
+
     # Only register if not already registered
     if not hass.services.has_service(DOMAIN, SERVICE_ACTIVATE_SIM):
         hass.services.async_register(
@@ -176,4 +254,32 @@ async def _async_setup_services(hass: HomeAssistant) -> None:
             SERVICE_READ_SMS,
             async_read_sms,
             supports_response=SupportsResponse.OPTIONAL,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_RESET_CONNECTION):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_RESET_CONNECTION,
+            async_reset_connection,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_AUTODISABLE):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_AUTODISABLE,
+            async_set_autodisable,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_USAGE_LIMITS):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_USAGE_LIMITS,
+            async_set_usage_limits,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_SET_RATEPLAN):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SET_RATEPLAN,
+            async_set_rateplan,
         )

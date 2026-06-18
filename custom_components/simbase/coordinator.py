@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SimbaseApiClient, SimbaseApiError
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, UNSET
+from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, DEFAULT_CURRENCY, UNSET
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -213,7 +213,8 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     ) -> None:
         """Set or clear the auto-disable date for a SIM card."""
         await self.api_client.set_autodisable(iccid, autodisable)
-        await self.async_request_refresh()
+        # Await an immediate refresh so the entity reflects the confirmed value.
+        await self.async_refresh()
 
     async def async_set_usage_limits(
         self,
@@ -239,7 +240,8 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_set_rateplan(self, iccid: str, plan_id: str) -> None:
         """Assign a rate plan to a SIM card."""
         await self.api_client.set_rateplan(iccid, plan_id)
-        await self.async_request_refresh()
+        # Await an immediate refresh so the entity reflects the confirmed value.
+        await self.async_refresh()
 
     def get_account_data(self) -> dict[str, Any]:
         """Get account data (no longer provided by the v2 API)."""
@@ -252,6 +254,10 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def get_balance(self) -> dict[str, Any]:
         """Get balance data."""
         return self._balance
+
+    def get_currency(self) -> str:
+        """Return the account billing currency (ISO 4217), defaulting to USD."""
+        return self._balance.get("currency") or DEFAULT_CURRENCY
 
     def get_totals(self) -> dict[str, Any]:
         """Get calculated totals."""

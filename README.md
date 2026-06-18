@@ -82,6 +82,8 @@ Each SIM also creates a **device tracker** that places it on the Home Assistant 
 | Total Monthly Cost | Sum of all SIM costs |
 | Total SMS | Aggregate message counts |
 
+> **Currency:** all monetary sensors (balance, per-SIM Monthly Cost, Total Monthly Cost) use your account's billing currency, reported by the Simbase API (`USD`, `EUR`, `GBP`, `AUD`, `CAD`, …). It falls back to `USD` only if the balance endpoint is unavailable.
+
 ### Controls
 
 | Entity | Type | Description |

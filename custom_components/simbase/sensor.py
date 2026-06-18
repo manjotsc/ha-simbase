@@ -208,7 +208,6 @@ SENSOR_DESCRIPTIONS: tuple[SimbaseSensorEntityDescription, ...] = (
     SimbaseSensorEntityDescription(
         key="monthly_cost",
         translation_key="monthly_cost",
-        native_unit_of_measurement="$",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         value_fn=_get_data_cost,
@@ -303,7 +302,6 @@ ACCOUNT_SENSOR_DESCRIPTIONS: tuple[SimbaseSensorEntityDescription, ...] = (
     SimbaseSensorEntityDescription(
         key="total_monthly_cost",
         translation_key="total_monthly_cost",
-        native_unit_of_measurement="$",
         device_class=SensorDeviceClass.MONETARY,
         state_class=SensorStateClass.TOTAL,
         value_fn=lambda data: data.get("total_cost", 0),
@@ -387,6 +385,13 @@ class SimbaseSensor(SimbaseEntity, SensorEntity):
         self._attr_unique_id = f"{iccid}_{description.key}"
 
     @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit, using the account currency for monetary sensors."""
+        if self.entity_description.device_class == SensorDeviceClass.MONETARY:
+            return self.coordinator.get_currency()
+        return self.entity_description.native_unit_of_measurement
+
+    @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
         sim_data = self._get_sim_data()
@@ -421,9 +426,9 @@ class SimbaseAccountSensor(SimbaseAccountEntity, SensorEntity):
 
     @property
     def native_unit_of_measurement(self) -> str | None:
-        """Return the unit, using the live currency for the balance sensor."""
-        if self.entity_description.key == "account_balance":
-            return self._get_balance_data().get("currency") or "USD"
+        """Return the unit, using the account currency for monetary sensors."""
+        if self.entity_description.device_class == SensorDeviceClass.MONETARY:
+            return self.coordinator.get_currency()
         return self.entity_description.native_unit_of_measurement
 
     @property

@@ -22,6 +22,10 @@ DOMAIN = "simbase"
 DEFAULT_DATA_LIMIT_MB = 1024  # 1 GB
 DEFAULT_SMS_LIMIT = 1000
 
+# Currency used for monetary sensors when the account balance (which carries
+# the account's billing currency) is unavailable.
+DEFAULT_CURRENCY = "USD"
+
 # API Constants
 API_BASE_URL = "https://api.simbase.com/v2"
 API_ENDPOINT_SIMCARDS = "/simcards"

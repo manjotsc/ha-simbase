@@ -7,7 +7,7 @@
   Data usage, costs, SMS, location and full activation control — one device per SIM.</p>
 
   <p>
-    <a href="https://github.com/hacs/integration"><img alt="HACS Custom" src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square"></a>
+    <a href="https://github.com/hacs/integration"><img alt="HACS Default" src="https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=flat-square"></a>
     <a href="https://github.com/manjotsc/ha-simbase/releases"><img alt="GitHub Release" src="https://img.shields.io/github/v/release/manjotsc/ha-simbase?style=flat-square"></a>
     <img alt="Home Assistant" src="https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5.svg?style=flat-square">
     <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square"></a>
@@ -34,9 +34,11 @@
 
 ### HACS (recommended)
 
-1. **HACS** → **Integrations** → ⋮ → **Custom repositories**
-2. Add `https://github.com/manjotsc/ha-simbase` with category **Integration**
-3. Search for **Simbase**, install, and restart Home Assistant
+Simbase is in the default HACS store — open it straight from your instance:
+
+[![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=manjotsc&repository=ha-simbase&category=integration)
+
+Or, by hand: **HACS** → search for **Simbase** → **Download** → restart Home Assistant.
 
 <details>
 <summary><b>Manual installation</b></summary>
@@ -52,6 +54,8 @@
 1. Grab an API key from the [Simbase Dashboard](https://dashboard.simbase.com/) → **Settings** → **API Key**
 2. **Settings** → **Devices & Services** → **Add Integration** → **Simbase**
 3. Paste the key, then tick the sensors and control groups you want
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=simbase)
 
 Everything you choose here can be changed later via **Configure** on the integration entry, including the polling interval (60–3600 s, default 5 minutes).
 

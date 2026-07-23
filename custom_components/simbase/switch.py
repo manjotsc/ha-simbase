@@ -12,10 +12,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .api import SimbaseApiError
 from .const import (
     DOMAIN,
+    BYTES_PER_MB,
     CONF_ENABLE_SWITCH,
     CONF_ENABLE_USAGE_LIMITS,
+    CONF_ENABLE_THEFT_PROTECTION,
     DEFAULT_ENABLE_SWITCH,
     DEFAULT_ENABLE_USAGE_LIMITS,
+    DEFAULT_ENABLE_THEFT_PROTECTION,
     DEFAULT_DATA_LIMIT_MB,
     DEFAULT_SMS_LIMIT,
 )
@@ -23,8 +26,6 @@ from .coordinator import SimbaseDataUpdateCoordinator
 from .entity import SimbaseEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-_BYTES_PER_MB = 1024 * 1024
 
 
 async def async_setup_entry(
@@ -41,11 +42,16 @@ async def async_setup_entry(
     usage_limits_enabled = entry.options.get(
         CONF_ENABLE_USAGE_LIMITS, DEFAULT_ENABLE_USAGE_LIMITS
     )
+    theft_protection_enabled = entry.options.get(
+        CONF_ENABLE_THEFT_PROTECTION, DEFAULT_ENABLE_THEFT_PROTECTION
+    )
 
     entities: list[SwitchEntity] = []
     for iccid in coordinator.get_all_simcards():
         if activation_enabled:
             entities.append(SimbaseActivationSwitch(coordinator, iccid))
+        if theft_protection_enabled:
+            entities.append(SimbaseTheftProtectionSwitch(coordinator, iccid))
         if usage_limits_enabled:
             entities.append(SimbaseAutoEnableSwitch(coordinator, iccid))
             entities.append(SimbaseDataLimitSwitch(coordinator, iccid))
@@ -103,6 +109,58 @@ class SimbaseActivationSwitch(SimbaseEntity, SwitchEntity):
             await self.coordinator.async_deactivate_simcard(self._iccid)
         except SimbaseApiError as err:
             _LOGGER.error("Failed to deactivate SIM %s: %s", self._iccid, err)
+            raise
+
+
+class SimbaseTheftProtectionSwitch(SimbaseEntity, SwitchEntity):
+    """Theft protection / IMEI lock, locking the SIM to its current device.
+
+    The API models ``imei_lock`` as the string enum ``"on"`` / ``"off"``.
+    """
+
+    _attr_translation_key = "theft_protection"
+    _attr_icon = "mdi:shield-lock"
+
+    def __init__(
+        self,
+        coordinator: SimbaseDataUpdateCoordinator,
+        iccid: str,
+    ) -> None:
+        """Initialize the switch."""
+        super().__init__(coordinator, iccid)
+        self._attr_unique_id = f"{iccid}_theft_protection"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return whether the SIM is locked to its device's IMEI."""
+        value = self._get_sim_data().get("imei_lock")
+        if value is None:
+            return None
+        return str(value).lower() == "on"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the IMEI the SIM is locked to."""
+        return {"imei": self._get_sim_data().get("imei")}
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Lock the SIM to its current device."""
+        try:
+            await self.coordinator.async_set_imei_lock(self._iccid, True)
+        except SimbaseApiError as err:
+            _LOGGER.error(
+                "Failed to enable theft protection for %s: %s", self._iccid, err
+            )
+            raise
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Allow the SIM to be used in any device."""
+        try:
+            await self.coordinator.async_set_imei_lock(self._iccid, False)
+        except SimbaseApiError as err:
+            _LOGGER.error(
+                "Failed to disable theft protection for %s: %s", self._iccid, err
+            )
             raise
 
 
@@ -235,7 +293,7 @@ class SimbaseDataLimitSwitch(_UsageLimitSwitch):
         iccid: str,
     ) -> None:
         """Initialize the switch."""
-        super().__init__(coordinator, iccid, DEFAULT_DATA_LIMIT_MB * _BYTES_PER_MB)
+        super().__init__(coordinator, iccid, DEFAULT_DATA_LIMIT_MB * BYTES_PER_MB)
         self._attr_unique_id = f"{iccid}_data_limit_enabled"
 
 

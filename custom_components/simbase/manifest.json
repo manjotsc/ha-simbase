@@ -4,10 +4,10 @@
   "codeowners": ["@manjotsc"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/manjotsc/hacs-simbase",
+  "documentation": "https://github.com/manjotsc/ha-simbase",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/manjotsc/hacs-simbase/issues",
+  "issue_tracker": "https://github.com/manjotsc/ha-simbase/issues",
   "requirements": ["aiohttp>=3.8.0"],
-  "version": "2.0.0"
+  "version": "2.1.0"
 }

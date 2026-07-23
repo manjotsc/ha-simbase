@@ -33,6 +33,7 @@
           "enable_usage_limits": "Usage Limit Controls",
           "enable_plan_controls": "Rate Plan & Auto-disable Controls",
           "enable_reset_button": "Reset Connection Button",
+          "enable_theft_protection": "Theft Protection Switch",
           "enable_device_tracker": "Device Tracker"
         },
         "data_description": {
@@ -57,6 +58,7 @@
           "enable_usage_limits": "Data/SMS limit numbers and their enable switches",
           "enable_plan_controls": "Rate plan selector and auto-disable date",
           "enable_reset_button": "Button to reset a SIM's connection",
+          "enable_theft_protection": "Switch for the IMEI lock that ties a SIM to its device",
           "enable_device_tracker": "Map tracker using the SIM's cell location"
         }
       }
@@ -98,6 +100,7 @@
           "enable_usage_limits": "Usage Limit Controls",
           "enable_plan_controls": "Rate Plan & Auto-disable Controls",
           "enable_reset_button": "Reset Connection Button",
+          "enable_theft_protection": "Theft Protection Switch",
           "enable_device_tracker": "Device Tracker"
         },
         "data_description": {
@@ -123,6 +126,7 @@
           "enable_usage_limits": "Data/SMS limit numbers and their enable switches",
           "enable_plan_controls": "Rate plan selector and auto-disable date",
           "enable_reset_button": "Button to reset a SIM's connection",
+          "enable_theft_protection": "Switch for the IMEI lock that ties a SIM to its device",
           "enable_device_tracker": "Map tracker using the SIM's cell location"
         }
       }
@@ -214,6 +218,9 @@
     "switch": {
       "activation": {
         "name": "Active"
+      },
+      "theft_protection": {
+        "name": "Theft Protection"
       },
       "usage_limits_auto_enable": {
         "name": "Auto Re-enable Monthly"

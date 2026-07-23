@@ -17,7 +17,7 @@ from homeassistant.const import UnitOfInformation
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, CONF_ENABLE_SENSORS, DEFAULT_SENSORS
+from .const import DOMAIN, BYTES_PER_MB, CONF_ENABLE_SENSORS, DEFAULT_SENSORS
 from .coordinator import SimbaseDataUpdateCoordinator
 from .entity import SimbaseEntity, SimbaseAccountEntity
 
@@ -37,7 +37,7 @@ def _bytes_to_mb(value: Any) -> float | None:
     if value is None:
         return None
     try:
-        return round(float(value) / (1024 * 1024), 2)
+        return round(float(value) / BYTES_PER_MB, 2)
     except (ValueError, TypeError):
         return None
 

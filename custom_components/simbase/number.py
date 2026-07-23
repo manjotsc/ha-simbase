@@ -17,6 +17,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .api import SimbaseApiError
 from .const import (
     DOMAIN,
+    BYTES_PER_MB,
     CONF_ENABLE_USAGE_LIMITS,
     DEFAULT_ENABLE_USAGE_LIMITS,
 )
@@ -24,8 +25,6 @@ from .coordinator import SimbaseDataUpdateCoordinator
 from .entity import SimbaseEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-_BYTES_PER_MB = 1024 * 1024
 
 
 async def async_setup_entry(
@@ -55,8 +54,8 @@ class SimbaseDataLimitNumber(SimbaseEntity, NumberEntity):
     _attr_translation_key = "data_limit"
     _attr_device_class = NumberDeviceClass.DATA_SIZE
     _attr_native_unit_of_measurement = UnitOfInformation.MEGABYTES
-    _attr_native_min_value = 10  # API minimum is 10,000,000 bytes (~10 MB)
-    _attr_native_max_value = 1048576  # 1 TiB expressed in MB
+    _attr_native_min_value = 10  # API minimum is 10,000,000 bytes (10 MB)
+    _attr_native_max_value = 1000000  # 1 TB expressed in MB
     _attr_native_step = 1
     _attr_mode = NumberMode.BOX
     _attr_icon = "mdi:database-arrow-up"
@@ -74,13 +73,13 @@ class SimbaseDataLimitNumber(SimbaseEntity, NumberEntity):
         threshold = self._get_sim_data().get("usage_limits_data_threshold")
         if threshold is None:
             return None
-        return round(threshold / _BYTES_PER_MB, 2)
+        return round(threshold / BYTES_PER_MB, 2)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the data threshold (converted from MB to bytes)."""
         try:
             await self.coordinator.async_set_usage_limits(
-                self._iccid, data_threshold=int(value * _BYTES_PER_MB)
+                self._iccid, data_threshold=int(value * BYTES_PER_MB)
             )
         except SimbaseApiError as err:
             _LOGGER.error("Failed to set data limit for %s: %s", self._iccid, err)

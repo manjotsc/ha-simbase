@@ -33,6 +33,7 @@ from .const import (
     CONF_ENABLE_USAGE_LIMITS,
     CONF_ENABLE_PLAN_CONTROLS,
     CONF_ENABLE_RESET_BUTTON,
+    CONF_ENABLE_THEFT_PROTECTION,
     AVAILABLE_SENSORS,
     AVAILABLE_BINARY_SENSORS,
     DEFAULT_SENSORS,
@@ -42,6 +43,7 @@ from .const import (
     DEFAULT_ENABLE_USAGE_LIMITS,
     DEFAULT_ENABLE_PLAN_CONTROLS,
     DEFAULT_ENABLE_RESET_BUTTON,
+    DEFAULT_ENABLE_THEFT_PROTECTION,
     SENSOR_DATA_USAGE,
     SENSOR_STATUS,
     SENSOR_PLAN,
@@ -166,6 +168,9 @@ class SimbaseConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_ENABLE_RESET_BUTTON: user_input.get(
                         CONF_ENABLE_RESET_BUTTON, DEFAULT_ENABLE_RESET_BUTTON
                     ),
+                    CONF_ENABLE_THEFT_PROTECTION: user_input.get(
+                        CONF_ENABLE_THEFT_PROTECTION, DEFAULT_ENABLE_THEFT_PROTECTION
+                    ),
                 },
             )
 
@@ -266,6 +271,10 @@ class SimbaseConfigFlow(ConfigFlow, domain=DOMAIN):
                         default=DEFAULT_ENABLE_RESET_BUTTON,
                     ): BooleanSelector(BooleanSelectorConfig()),
                     vol.Required(
+                        CONF_ENABLE_THEFT_PROTECTION,
+                        default=DEFAULT_ENABLE_THEFT_PROTECTION,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
                         CONF_ENABLE_DEVICE_TRACKER,
                         default=DEFAULT_ENABLE_DEVICE_TRACKER,
                     ): BooleanSelector(BooleanSelectorConfig()),
@@ -317,6 +326,9 @@ class SimbaseOptionsFlowHandler(OptionsFlow):
                     CONF_ENABLE_RESET_BUTTON: user_input.get(
                         CONF_ENABLE_RESET_BUTTON, DEFAULT_ENABLE_RESET_BUTTON
                     ),
+                    CONF_ENABLE_THEFT_PROTECTION: user_input.get(
+                        CONF_ENABLE_THEFT_PROTECTION, DEFAULT_ENABLE_THEFT_PROTECTION
+                    ),
                 },
             )
 
@@ -341,6 +353,9 @@ class SimbaseOptionsFlowHandler(OptionsFlow):
         )
         current_reset_button = self.config_entry.options.get(
             CONF_ENABLE_RESET_BUTTON, DEFAULT_ENABLE_RESET_BUTTON
+        )
+        current_theft_protection = self.config_entry.options.get(
+            CONF_ENABLE_THEFT_PROTECTION, DEFAULT_ENABLE_THEFT_PROTECTION
         )
 
         return self.async_show_form(
@@ -452,6 +467,10 @@ class SimbaseOptionsFlowHandler(OptionsFlow):
                     vol.Required(
                         CONF_ENABLE_RESET_BUTTON,
                         default=current_reset_button,
+                    ): BooleanSelector(BooleanSelectorConfig()),
+                    vol.Required(
+                        CONF_ENABLE_THEFT_PROTECTION,
+                        default=current_theft_protection,
                     ): BooleanSelector(BooleanSelectorConfig()),
                     vol.Required(
                         CONF_ENABLE_DEVICE_TRACKER,

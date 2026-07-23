@@ -17,9 +17,15 @@ UNSET = _Unset()
 
 DOMAIN = "simbase"
 
+# Simbase expresses data volumes in decimal megabytes (1 MB = 1,000,000 bytes),
+# which is also what HA's UnitOfInformation.MEGABYTES means. Converting with
+# 1024 * 1024 makes a 10 MB limit arrive as 10,485,760 bytes and show up in the
+# Simbase dashboard as 10.48576 MB.
+BYTES_PER_MB = 1_000_000
+
 # Fallback thresholds used when a usage-limit toggle is switched on without a
 # previously known value (e.g. after a restart). Users adjust via the Number.
-DEFAULT_DATA_LIMIT_MB = 1024  # 1 GB
+DEFAULT_DATA_LIMIT_MB = 1000  # 1 GB
 DEFAULT_SMS_LIMIT = 1000
 
 # Currency used for monetary sensors when the account balance (which carries
@@ -46,6 +52,7 @@ CONF_ENABLE_SWITCH = "enable_switch"
 CONF_ENABLE_DEVICE_TRACKER = "enable_device_tracker"
 CONF_ENABLE_USAGE_LIMITS = "enable_usage_limits"
 CONF_ENABLE_PLAN_CONTROLS = "enable_plan_controls"
+CONF_ENABLE_THEFT_PROTECTION = "enable_theft_protection"
 CONF_ENABLE_RESET_BUTTON = "enable_reset_button"
 
 # Sensor keys
@@ -111,6 +118,7 @@ DEFAULT_ENABLE_DEVICE_TRACKER = True
 DEFAULT_ENABLE_USAGE_LIMITS = True
 DEFAULT_ENABLE_PLAN_CONTROLS = True
 DEFAULT_ENABLE_RESET_BUTTON = True
+DEFAULT_ENABLE_THEFT_PROTECTION = True
 
 # Defaults
 DEFAULT_SCAN_INTERVAL = 300  # 5 minutes

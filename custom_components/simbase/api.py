@@ -423,6 +423,15 @@ class SimbaseApiClient:
             json_data=data,
         )
 
+    async def set_imei_lock(self, iccid: str, enabled: bool) -> dict[str, Any]:
+        """Turn theft protection (IMEI lock) on or off for a SIM.
+
+        The API models ``imei_lock`` as the string enum ``"on"`` / ``"off"``.
+        """
+        return await self.update_simcard(
+            iccid, imei_lock="on" if enabled else "off"
+        )
+
     async def set_usage_limits(
         self,
         iccid: str,

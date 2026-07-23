@@ -11,7 +11,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SimbaseApiClient, SimbaseApiError
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, DEFAULT_CURRENCY, UNSET
+from .const import (
+    DOMAIN,
+    BYTES_PER_MB,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_CURRENCY,
+    UNSET,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -167,7 +173,7 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "balance": self._balance,
                 "totals": {
                     "data_usage_bytes": total_data_usage,
-                    "data_usage_mb": round(total_data_usage / (1024 * 1024), 2) if total_data_usage else 0,
+                    "data_usage_mb": round(total_data_usage / BYTES_PER_MB, 2) if total_data_usage else 0,
                     "total_cost": round(total_cost, 2),
                     "active_sims": active_sims,
                     "inactive_sims": inactive_sims,
@@ -235,6 +241,12 @@ class SimbaseDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         # Await an immediate refresh so entities read the confirmed value
         # rather than the pre-write (debounced) data.
+        await self.async_refresh()
+
+    async def async_set_imei_lock(self, iccid: str, enabled: bool) -> None:
+        """Turn theft protection (IMEI lock) on or off for a SIM card."""
+        await self.api_client.set_imei_lock(iccid, enabled)
+        # Await an immediate refresh so the entity reflects the confirmed value.
         await self.async_refresh()
 
     async def async_set_rateplan(self, iccid: str, plan_id: str) -> None:
